@@ -31,9 +31,6 @@ class UsedChar:
     def add(self, index, correct):
         self.correct.add(index) if correct else self.incorrect.add(index)
 
-    def __repr__(self):
-        return ("correct'%s'; incorrect: '%s'" % (self.correct, self.incorrect))
-
 def all_possible_words(file_path, word_length):
     with open(file_path, "r") as word_file:
         words = []
