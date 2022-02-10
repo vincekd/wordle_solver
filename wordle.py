@@ -47,7 +47,7 @@ def all_possible_words(file_path, word_length):
         for word in words:
             word.score_word(letter_counts)
 
-        return words
+        return (words, {key: UsedChar() for key in letter_counts.keys()})
 
 def find_word(words, word_length, letters, guesses):
     possible_words = sorted([word for word in words if word.word not in guesses and word.usable(letters)], key=lambda word: word.score, reverse=True)
@@ -59,30 +59,27 @@ if __name__=="__main__":
     word_length = 5
     word = sys.argv[2]
     chars = [char for char in word]
-    words = all_possible_words(file_path, word_length)
+    (words, letters) = all_possible_words(file_path, word_length)
+
+    if word not in [w.word for w in words]:
+        print("Word '%s' not in dictionary." % word)
+        exit()
 
     tries = 0
     guesses = []
-    letters = dict()
     while (word not in guesses and tries < max_tries):
         guess = find_word(words, word_length, letters, guesses)
-        if guess is None:
-            print("no possible guesses: bad word — %s" % word)
-            break
         tries += 1
         guesses.append(guess.word)
 
         if guess.word == word:
             print("You won with '%s' in %i tries!" % (word, tries))
-            break
         else:
             print("Try %i: '%s' contains %i correct letters." % (tries, guess.word, len(set(chars).intersection(set(guess.chars)))))
             for index, char in enumerate(guess.chars):
                 if char not in chars:
                     letters[char] = False
                 else:
-                    if char not in letters:
-                        letters[char] = UsedChar()
                     letters[char].add(index, guess.chars[index] == chars[index])
 
     if tries >= max_tries and guesses[-1] != word:
