@@ -136,4 +136,4 @@ if __name__=="__main__":
             print("Random Average: %.2f; Failed average: %.2f" % ((sum(averages) / len(averages)), (sum(fails) / iterations)))
             # Average with 2 tries: 4.09 tries
             # Average with 50 tries: 4.12
-            # Average with 50 tries/fails:
+            # Average with 50 tries/fails: 4.09 / 43.92
