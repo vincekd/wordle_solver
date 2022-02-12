@@ -85,7 +85,7 @@ def solve(word, words, letters, sort_score, max_tries=-1, log=False):
     if max_tries > 1 and tries >= max_tries and word not in guesses:
         print("Failed to find word: '%s'" % word)
 
-    return None
+    return tries
 
 def get_letters(letter_counts):
     return {key: UsedChar() for key in letter_counts.keys()}
@@ -98,34 +98,42 @@ def get_average(words, letter_counts, sort_score, log=True):
         if tries > max_tries:
             if log:
                 print("'%s' took more than max tries (%i)" % (word.word, tries))
-            fails.append(tries)
+            fails.append(word.word)
         solutions.append(tries)
 
     average = sum(solutions) / len(solutions)
     if log:
         print("Average solution: %.2f; Failed: %i" % (average, len(fails)))
-    return average
+    return average, len(fails)
 
 if __name__=="__main__":
     dict_path = sys.argv[1]
     max_tries = 6
     word_length = 5
     sort_score = False
-    log = False
+    log = True
     iterations = 50
+
+    print("Solving wordle in %i tries %s letter sorting." % (max_tries, "with" if sort_score else "without"))
 
     words, letter_counts = all_possible_words(dict_path, word_length)
 
-    if len(sys.argv) == 3:
+    if len(sys.argv) == 3: # check if specific word passed in to solve
         solve(sys.argv[2], words, get_letters(letter_counts), sort_score, max_tries, log)
-    else:
+    else: # otherwise do average of every word
         if sort_score is True:
             get_average(words, letter_counts, sort_score, log)
             # Average: 3.84 tries
+            # Fails: 34
         else:
             averages = []
+            fails = []
             while len(averages) < iterations:
-                averages.append(get_average(random.sample(words, len(words)), letter_counts, sort_score, log))
-            print("Random Average: %.2f" % (sum(averages) / len(averages)))
+                average, failed = get_average(random.sample(words, len(words)), letter_counts, sort_score, log)
+                averages.append(average)
+                fails.append(failed)
+
+            print("Random Average: %.2f; Failed average: %.2f" % ((sum(averages) / len(averages)), (sum(fails) / iterations)))
             # Average with 2 tries: 4.09 tries
             # Average with 50 tries: 4.12
+            # Average with 50 tries/fails:
