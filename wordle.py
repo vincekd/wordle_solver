@@ -32,8 +32,8 @@ class UsedChar:
         self.correct.add(index) if correct else self.incorrect.add(index)
 
 def all_possible_words(file_path, word_length):
+    words = []
     with open(file_path, "r") as word_file:
-        words = []
         letter_counts = dict()
         for word in word_file:
             word = word.lower().strip()
@@ -47,40 +47,85 @@ def all_possible_words(file_path, word_length):
         for word in words:
             word.score_word(letter_counts)
 
-        return (words, {key: UsedChar() for key in letter_counts.keys()})
+    return (words, letter_counts)
 
-def find_word(words, word_length, letters, guesses):
-    possible_words = sorted([word for word in words if word.word not in guesses and word.usable(letters)], key=lambda word: word.score, reverse=True)
+def find_word(words, letters, guesses, sort_score):
+    possible_words = [word for word in words if word.word not in guesses and word.usable(letters)]
+    if sort_score:
+        possible_words = sorted(possible_words, key=lambda word: word.score, reverse=True)
     return possible_words[0] if len(possible_words) > 0 else None
 
-if __name__=="__main__":
-    file_path = sys.argv[1]
-    max_tries = 6
-    word_length = 5
-    word = sys.argv[2]
+def solve(word, words, letters, sort_score, max_tries=-1, log=False):
     chars = [char for char in word]
-    (words, letters) = all_possible_words(file_path, word_length)
 
-    if word not in [w.word for w in words]:
+    if log and word not in [w.word for w in words]:
         print("Word '%s' not in dictionary." % word)
-        exit()
+        return None
 
     tries = 0
     guesses = []
-    while (word not in guesses and tries < max_tries):
-        guess = find_word(words, word_length, letters, guesses)
+    while (word not in guesses and (max_tries < 1 or tries < max_tries)):
+        guess = find_word(words, letters, guesses, sort_score)
         tries += 1
         guesses.append(guess.word)
 
         if guess.word == word:
-            print("You won with '%s' in %i tries!" % (word, tries))
+            if log:
+                print("You won with '%s' in %i tries!" % (word, tries))
+            return tries
         else:
-            print("Try %i: '%s' contains %i correct letters." % (tries, guess.word, len(set(chars).intersection(set(guess.chars)))))
+            if log:
+                print("Try %i: '%s' contains %i correct letters." % (tries, guess.word, len(set(chars).intersection(set(guess.chars)))))
             for index, char in enumerate(guess.chars):
                 if char not in chars:
                     letters[char] = False
                 else:
                     letters[char].add(index, guess.chars[index] == chars[index])
 
-    if tries >= max_tries and guesses[-1] != word:
+    if max_tries > 1 and tries >= max_tries and word not in guesses:
         print("Failed to find word: '%s'" % word)
+
+    return None
+
+def get_letters(letter_counts):
+    return {key: UsedChar() for key in letter_counts.keys()}
+
+def get_average(words, letter_counts, sort_score, log=True):
+    solutions = []
+    fails = []
+    for word in words:
+        tries = solve(word.word, words, get_letters(letter_counts), sort_score)
+        if tries > max_tries:
+            if log:
+                print("'%s' took more than max tries (%i)" % (word.word, tries))
+            fails.append(tries)
+        solutions.append(tries)
+
+    average = sum(solutions) / len(solutions)
+    if log:
+        print("Average solution: %.2f; Failed: %i" % (average, len(fails)))
+    return average
+
+if __name__=="__main__":
+    dict_path = sys.argv[1]
+    max_tries = 6
+    word_length = 5
+    sort_score = False
+    log = False
+    iterations = 50
+
+    words, letter_counts = all_possible_words(dict_path, word_length)
+
+    if len(sys.argv) == 3:
+        solve(sys.argv[2], words, get_letters(letter_counts), sort_score, max_tries, log)
+    else:
+        if sort_score is True:
+            get_average(words, letter_counts, sort_score, log)
+            # Average: 3.84 tries
+        else:
+            averages = []
+            while len(averages) < iterations:
+                averages.append(get_average(random.sample(words, len(words)), letter_counts, sort_score, log))
+            print("Random Average: %.2f" % (sum(averages) / len(averages)))
+            # Average with 2 tries: 4.09 tries
+            # Average with 50 tries: 4.12
